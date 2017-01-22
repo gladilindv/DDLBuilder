@@ -2,7 +2,7 @@
 
 import argparse
 import os
-import shutil
+# import shutil
 import pprint
 
 # local
@@ -98,12 +98,12 @@ if __name__ == '__main__':
             os.mkdir(sqlOutEnvRgnPath)
 
         # Создаем папку для временного хранения скриптов
-        sqlOutEnvTmpPath = os.path.join(sqlOutEnvPath, "tmp")
-        if os.path.exists(sqlOutEnvTmpPath):
-            shutil.rmtree(sqlOutEnvTmpPath)
+        # sqlOutEnvTmpPath = os.path.join(sqlOutEnvPath, "tmp")
+        # if os.path.exists(sqlOutEnvTmpPath):
+        #    shutil.rmtree(sqlOutEnvTmpPath)
             
         # Копируем все скрипты во временную папку
-        shutil.copytree(sqlInpPath, sqlOutEnvTmpPath)
+        # shutil.copytree(sqlInpPath, sqlOutEnvTmpPath)
                 
         # Заменяем плейсхолдеры, которые находятся в DDL а не в грантах (они в одинарных кавычках)
         # Sources.replacePlaceholdersInFiles(sqlOutEnvTmpPath, env, namespace.Rgn, Config.db_ddl_placeholders)
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         pprint.pprint(installedSQLScripts)
         
         # Считаем md5 по всем файлам
-        notInstalledSQLScripts = Sources.getNotInstalledSQLScripts(sqlOutEnvTmpPath, installedSQLScripts)
+        notInstalledSQLScripts = Sources.getNotInstalledSQLScripts(sqlInpPath, installedSQLScripts)
 
         print ("############################################################################")
         print ("### Not installed SQL scripts ##############################################")
@@ -133,7 +133,7 @@ if __name__ == '__main__':
         elif not sqlResultScript or not sqlArgs:
 
             print("[ERR] Wrong input parameters for Assembly.vbs")
-            print("      - path:  {0}".format(sqlOutEnvTmpPath))
+            print("      - path:  {0}".format(sqlInpPath))
             print("      - res :  {0}".format(sqlResultScript))
             print("      - args:  {0}".format(sqlArgs))
 
@@ -148,16 +148,17 @@ if __name__ == '__main__':
             # sqlArgs
             #          subprocess.call(cmdAssembly)
 
-            asm.createScript(env, sqlResultScript, notInstalledSQLScripts)
+            asm.createScript(env, sqlInpPath, sqlResultScript, notInstalledSQLScripts)
 
-            # Заменяем плейсхолдеры в грантах результирующего скрипта
-            Sources.replacePlaceholders(sqlResultScript, env, namespace.Rgn, Config.db_grant_placeholders)
+            if os.path.isfile(sqlResultScript):
+                # Заменяем плейсхолдеры в грантах результирующего скрипта
+                Sources.replacePlaceholders(sqlResultScript, env, namespace.Rgn, Config.db_grant_placeholders)
 
-            # Формирование insert-ов
-            Sources.addInsertStatements(sqlResultScript, notInstalledSQLScripts, env, namespace.Rgn, namespace.Version)
+                # Формирование insert-ов
+                Sources.addInsertStatements(sqlResultScript, notInstalledSQLScripts, env, namespace.Rgn, namespace.Version)
 
         # Удаляем папку с временными SQL файлами
-        if os.path.exists(sqlOutEnvTmpPath):
-            shutil.rmtree(sqlOutEnvTmpPath)
+        # if os.path.exists(sqlOutEnvTmpPath):
+        #    shutil.rmtree(sqlOutEnvTmpPath)
                     
     print ("[INF] End")
