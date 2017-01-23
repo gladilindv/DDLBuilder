@@ -52,23 +52,29 @@ class DataBaseMgr:
 
         return installed
 
-    def isTableExist(self, aName, aType):
-        shema, table = aName.split('.')
-        sql = "select 1 from SYSCAT.TABLES where TABSCHEMA='%s' and TABNAME='%s' and TYPE='%s'" % shema, table, aType
-
+    def isObjectExist(self, aSQL):
         if self.mConn is None:
             return False
 
         try:
-            stmt = ibm_db.exec_immediate(self.mConn, sql)
+            stmt = ibm_db.exec_immediate(self.mConn, aSQL)
         except:
             print ("[ERR] DB error({0})".format(ibm_db.stmt_errormsg()))
 
         # row = ibm_db.fetch_assoc(stmt)
         # fetch count row
         # return count > 1
-
         return True
+
+
+    def isTableExist(self, aName, aType):
+        schema, table = aName.split('.')
+        sql = "select 1 from SYSCAT.TABLES where TABSCHEMA='%s' and TABNAME='%s' and TYPE='%s'" % schema, table, aType
+
+        return self.isObjectExist(sql)
 
     def isTriggerExist(self, aName):
-        return True
+        schema, table = aName.split('.')
+        sql = "select 1 from SYSCAT.TRIGGERS where TRIGSCHEMA='%s' and TRIGNAME='%s'" % schema, table
+
+        return self.isObjectExist(sql)
