@@ -105,9 +105,12 @@ if __name__ == '__main__':
                 
         # Заменяем плейсхолдеры, которые находятся в DDL а не в грантах (они в одинарных кавычках)
         # Sources.replacePlaceholdersInFiles(sqlOutEnvTmpPath, env, namespace.Rgn, Config.db_ddl_placeholders)
-        
+
+        # Соединение с БД (текущая среда). При переходе к следующей среде - отсоединяться
+        dbMgr.connect(env)
+
         # Получим список установленных скриптов вместе с md5
-        installedSQLScripts = dbMgr.getInstalledSQLScripts(env)
+        installedSQLScripts = dbMgr.getInstalledSQLScripts()
         
         print ("############################################################################")
         print ("### Installed SQL scripts ##################################################")

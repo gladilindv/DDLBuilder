@@ -2,6 +2,7 @@
 
 import os
 
+
 class Assembly:
     def __init__(self, aDBMgr):
         self.mObj = []
@@ -20,16 +21,15 @@ class Assembly:
                     obj = self.readScript(path)
                     objects[ddl.upper()] = obj
 
+                    '''
                     self.buildDependencies(obj)
                     self.processFiles(aListFiles)
+                    '''
 
         for sql in aListFiles:
             name, cmd = sql.upper().split(':')
             if name in objects.keys():
                 self.processObject(objects[name], cmd)
-
-
-
 
     def readScript(self, aFile):
         self.mWords = ["DROP", "TABLE", "TRIGGER", "FUNCTION", "VIEW", "PROC", "DEPENDS"]
@@ -65,6 +65,7 @@ class Assembly:
                             info.append(line)
         return info
 
+    '''
     def buildDependencies(self, aObj):
         for dep in aObj["DEPENDS"]:
                 print (dep)
@@ -72,13 +73,14 @@ class Assembly:
     def processFiles(self, aListFiles):
         for file in aListFiles:
             cmd = file.split(':')[1]
+    '''
 
     def processObject(self, aObj, aCmd):
         print aCmd,
         self.processDrops(aObj, aCmd)
 
     def processDrops(self, aObj, aCmd):
-        if aObj["DROP"].count() == 0
+        if len(aObj["DROP"]) == 0:
             return
 
         for drop in aObj["DROP"]:
@@ -93,7 +95,7 @@ class Assembly:
 
             if tokens[0] == "DROP":
                 if tokens[1] == "TABLE":
-                    bExist = self.mDBMgr.isTableExist(tokens[2],"T")
+                    bExist = self.mDBMgr.isTableExist(tokens[2], "T")
                 elif tokens[1] == "TRIGGER":
                     bExist = self.mDBMgr.isTriggerExist(tokens[2])
 
