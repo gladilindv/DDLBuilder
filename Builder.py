@@ -23,8 +23,6 @@ sqlOutPath = "OUT"
 # парсер командной строки
 def createParser ():
     cmdParser = argparse.ArgumentParser()
-    # название приложения RCI, PDC, FCB, CC, по ним определяются имена сервисных пользователей
-    cmdParser.add_argument('App')
     # версия идет в название скриптов
     cmdParser.add_argument('Version')
     # 
@@ -77,7 +75,7 @@ if __name__ == '__main__':
         quit()
 
     dbMgr = DataBaseMgr(namespace.Rgn)
-    asm = Assembly(namespace.Rgn)
+    asm = Assembly(dbMgr)
 
     for env in envs:
         print ("[INF] ENV {0}".format(env))
