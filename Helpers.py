@@ -1,7 +1,6 @@
 # coding: cp1251
 
-# additional modules
-#import ibm_db
+# import ibm_db
 
 # local
 import Config
@@ -61,20 +60,41 @@ class DataBaseMgr:
         except:
             print ("[ERR] DB error({0})".format(ibm_db.stmt_errormsg()))
 
+        # TODO
         # row = ibm_db.fetch_assoc(stmt)
         # fetch count row
         # return count > 1
         return True
 
-
     def isTableExist(self, aName, aType):
-        schema, table = aName.split('.')
-        sql = "select 1 from SYSCAT.TABLES where TABSCHEMA='%s' and TABNAME='%s' and TYPE='%s'" % schema, table, aType
+        schema, name = aName.split('.')
+        sql = "select 1 from SYSCAT.TABLES where TABSCHEMA='{0}' and TABNAME='{1}' and TYPE='{2}'".format(schema, name, aType)
 
         return self.isObjectExist(sql)
 
     def isTriggerExist(self, aName):
-        schema, table = aName.split('.')
-        sql = "select 1 from SYSCAT.TRIGGERS where TRIGSCHEMA='%s' and TRIGNAME='%s'" % schema, table
+        schema, name = aName.split('.')
+        sql = "select 1 from SYSCAT.TRIGGERS where TRIGSCHEMA='{0}' and TRIGNAME='{1}'".format(schema, name)
+
+        return self.isObjectExist(sql)
+
+    def isIndexExist(self, aName):
+        schema, name = aName.split('.')
+        sql = "select 1 from SYSCAT.INDEXES where INDSCHEMA='{0}' and INDNAME='{1}'".format(schema, name)
+
+        return self.isObjectExist(sql)
+
+    def isRoutineExist(self, aName, aType):
+        schema, name = aName.split('.')
+        sql = "select 1 from SYSCAT.ROUTINES where ROUTINESCHEMA='{0}' and ROUTINENAME='{1}'".format(schema, name)
+
+        # TODO
+        # check and parse parameters
+
+        return self.isObjectExist(sql)
+
+    def isSpecRoutineExist(self, aName, aType):
+        schema, name = aName.split('.')
+        sql = "select 1 from SYSCAT.ROUTINES where ROUTINESCHEMA='{0}' and SPECIFICNAME='{1}' and ROUTINETYPE='{2}'".format(schema, name, aType)
 
         return self.isObjectExist(sql)

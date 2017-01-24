@@ -98,11 +98,20 @@ class Assembly:
                     bExist = self.mDBMgr.isTableExist(tokens[2], "T")
                 elif tokens[1] == "TRIGGER":
                     bExist = self.mDBMgr.isTriggerExist(tokens[2])
+                elif tokens[1] == "VIEW":
+                    bExist = self.mDBMgr.isTableExist(tokens[2], "V")
+                elif tokens[1] == "INDEX":
+                    bExist = self.mDBMgr.isIndexExist(tokens[2])
+                elif tokens[1] == "PROCEDURE":
+                    bExist = self.mDBMgr.isRoutineExist(tokens[2], "P")
+                elif tokens[1] == "FUNCTION":
+                    bExist = self.mDBMgr.isRoutineExist(tokens[2], "F")
+                elif tokens[1] == "SPECIFIC":
+                    routine = tokens[2]
+                    if routine == "PROCEDURE":
+                        bExist = self.mDBMgr.isSpecRoutineExist(tokens[3], "P")
+                    elif tokens[1] == "FUNCTION":
+                        bExist = self.mDBMgr.isSpecRoutineExist(tokens[3], "F")
 
             if bExist:
                 print drop, "exist"
-
-
-
-
-
