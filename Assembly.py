@@ -79,6 +79,11 @@ class Assembly:
         print aCmd,
         self.processDrops(aObj, aCmd)
 
+        # TODO
+        # ?
+        # if depended -> recurse
+
+
     def processDrops(self, aObj, aCmd):
         if len(aObj["DROP"]) == 0:
             return
@@ -103,9 +108,11 @@ class Assembly:
                 elif tokens[1] == "INDEX":
                     bExist = self.mDBMgr.isIndexExist(tokens[2])
                 elif tokens[1] == "PROCEDURE":
-                    bExist = self.mDBMgr.isRoutineExist(tokens[2], "P")
+                    name = "".join(tokens[2:]).strip()
+                    bExist = self.mDBMgr.isRoutineExist(name, "P")
                 elif tokens[1] == "FUNCTION":
-                    bExist = self.mDBMgr.isRoutineExist(tokens[2], "F")
+                    name = "".join(tokens[2:]).strip()
+                    bExist = self.mDBMgr.isRoutineExist(name, "F")
                 elif tokens[1] == "SPECIFIC":
                     routine = tokens[2]
                     if routine == "PROCEDURE":

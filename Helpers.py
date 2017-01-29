@@ -16,7 +16,9 @@ class DataBaseMgr:
         self.mTable = Config.getDBTableName(aEnv, self.mRgn)
         dataSource = Config.getDBDataSource(aEnv, self.mRgn)
 
-        print ("[INF] connecting to ({0} : {1})".format(dataSource, dataTable))
+        print ("[INF] connecting to {0}::{1}".format(dataSource, self.mTable))
+
+        return
 
         try:
             self.mConn = ibm_db.connect(dataSource, Config.db_deploy_user, Config.db_deploy_pass)
@@ -85,11 +87,48 @@ class DataBaseMgr:
         return self.isObjectExist(sql)
 
     def isRoutineExist(self, aName, aType):
-        schema, name = aName.split('.')
-        sql = "select 1 from SYSCAT.ROUTINES where ROUTINESCHEMA='{0}' and ROUTINENAME='{1}'".format(schema, name)
+        if aName.find('(') == -1:
+            schema, name = aName.split('.')
+            sql = "select 1 from SYSCAT.ROUTINES where ROUTINESCHEMA='{0}' and ROUTINENAME='{1}'".format(schema, name)
 
-        # TODO
-        # check and parse parameters
+            return self.isObjectExist(sql)
+
+        s = aName.index('(')
+        e = aName.index(')')
+
+        schema, name = aName[:s].split('.')
+        argstr = aName[s+1:e]
+
+        arglst = []
+        argraw = argstr.split(',')
+        for arg in argraw:
+            if arg == "CHAR":
+                arg = "CHARACTER"
+            elif arg == "INT":
+                arg = "INTEGER"
+            elif arg == "DEC":
+                arg = "DECIMAL"
+            elif arg == "NUM":
+                arg = "NUMERIC"
+
+            arglst.append(arg)
+
+        sql = "select 1 from (select R.ROUTINESCHEMA, R.ROUTINENAME, R.SPECIFICNAME, R.ROUTINETYPE, " \
+              "coalesce(listagg(" \
+              "replace(P.TYPENAME, ' ','') || case " \
+              "when P.TYPENAME in ('CHARACTER','VARCHAR','LONG VARCHAR') then '(' || rtrim(char(P.LENGTH)) || ')' " \
+              "when P.TYPENAME in ('DECIMAL') then '(' || rtrim(char(P.LENGTH)) || ',' || rtrim(char(P.SCALE)) || ')' " \
+              "else '' end" \
+              ", ',') within group (order by P.ORDINAL asc), '') as PARAMS " \
+              "from SYSCAT.ROUTINES R " \
+              "left outer join SYSCAT.ROUTINEPARMS P on P.ROUTINESCHEMA=R.ROUTINESCHEMA and " \
+              "P.SPECIFICNAME=R.SPECIFICNAME and P.ORDINAL > 0 " \
+              "where " \
+              "R.ROUTINESCHEMA='{0}' " \
+              "group by R.ROUTINESCHEMA, R.ROUTINENAME, R.SPECIFICNAME, R.ROUTINETYPE) A " \
+              "where A.ROUTINENAME='{1}' " \
+              "and A.PARAMS='{2}' " \
+              "and A.ROUTINETYPE='{3}'".format(schema, name, ','.join(arglst), aType)
 
         return self.isObjectExist(sql)
 
