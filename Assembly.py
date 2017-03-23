@@ -5,31 +5,58 @@ import os
 
 class Assembly:
     def __init__(self, aDBMgr):
-        self.mObj = []
-        # self.mUser = Config.db_deploy_user
-        # self.mPass = Config.db_deploy_pass
-        # self.mWords = ["DROP", "TABLE", "TRIGGER", "FUNCTION", "VIEW", "PROC"]
+        self.mWords = []
         self.mDBMgr = aDBMgr
 
-    def createScript(self, aEnv, aInDir, aOutFile, aListFiles):
-        objects = {}
-        for root, dirs, files in os.walk(aInDir):
-            for ddl in files:
-                info = os.path.splitext(ddl)
-                if info[1] == '.sql':
-                    path = os.path.join(root, ddl)
-                    obj = self.readScript(path)
-                    objects[ddl.upper()] = obj
-
-                    '''
-                    self.buildDependencies(obj)
-                    self.processFiles(aListFiles)
-                    '''
-
+    def createScript(self, aInDir, aOutFile, aListFiles):
+        out = {}
         for sql in aListFiles:
             name, cmd = sql.upper().split(':')
-            if name in objects.keys():
-                self.processObject(objects[name], cmd)
+            path = os.path.join(aInDir, name)
+            if os.path.isfile(path):
+                obj = self.readScript(path)
+                self.processDrops(obj, cmd)
+                out[name] = obj
+
+        # sort objects by dependencies
+        dropSQL = "-- drop section\n"
+        buildSQL = "-- new section\n"
+        for name in out:
+            obj = out[name]
+            for drop in obj["DROP"]:
+                drop = drop.strip().upper()
+                if drop:
+                    dropSQL += "-- " + name + " \n"
+                    dropSQL += drop
+
+            buildSQL += self.buildScript(name, out)
+
+        # serialize objects to aOutFile
+        with open(aOutFile, 'w') as f:
+            f.write('-- SQL ASSEMBLY FILE --\n\n')
+            f.write(dropSQL)
+            f.write('\n\n')
+            f.write(buildSQL)
+
+    def buildScript(self, aName, aObjects):
+        sql = ""
+        sections = ["TABLE", "TRIGGER", "FUNCTION", "VIEW", "PROC"]
+        obj = aObjects[aName]
+        # if already used return
+        if "OK" in obj and obj["OK"]:
+            return ""
+        for dep in obj["DEPENDS"]:
+            name = dep + ".SQL"
+            if name in aObjects:
+                sql += self.buildScript(name, aObjects)
+
+        sql += "\n\n-- " + aName + "\n"
+        for item in sections:
+            if item in obj:
+                for row in obj[item]:
+                    sql += row
+                    obj["OK"] = True
+        return sql
 
     def readScript(self, aFile):
         self.mWords = ["DROP", "TABLE", "TRIGGER", "FUNCTION", "VIEW", "PROC", "DEPENDS"]
@@ -65,37 +92,17 @@ class Assembly:
                             info.append(line)
         return info
 
-    '''
-    def buildDependencies(self, aObj):
-        for dep in aObj["DEPENDS"]:
-                print (dep)
-
-    def processFiles(self, aListFiles):
-        for file in aListFiles:
-            cmd = file.split(':')[1]
-    '''
-
-    def processObject(self, aObj, aCmd):
-        print aCmd,
-        self.processDrops(aObj, aCmd)
-
-        # TODO
-        # ?
-        # if depended -> recurse
-
-
     def processDrops(self, aObj, aCmd):
         if len(aObj["DROP"]) == 0:
             return
 
-        for drop in aObj["DROP"]:
+        for num, drop in enumerate(aObj["DROP"]):
             drop = drop.strip().upper()
 
             if drop.endswith(';'):
                 drop = drop[:-1]
 
             bExist = (aCmd == "A")
-
             tokens = drop.split(" ")
 
             if tokens[0] == "DROP":
@@ -120,5 +127,6 @@ class Assembly:
                     elif tokens[1] == "FUNCTION":
                         bExist = self.mDBMgr.isSpecRoutineExist(tokens[3], "F")
 
-            if bExist:
-                print drop, "exist"
+            # if not exist -> mark as don`t drop
+            if not bExist:
+                aObj["DROP"][num] = ""
