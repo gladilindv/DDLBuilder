@@ -1,6 +1,6 @@
 # coding: cp1251
 
-# import ibm_db
+import ibm_db
 
 # local
 import Config
@@ -9,6 +9,7 @@ import Config
 class DataBaseMgr:
     def __init__(self, aRgn):
         self.mRgn = aRgn
+        self.mErr = ""
         self.mConn = None
         self.mTable = "PDC.INSTALLED_SCRIPTS"
 
@@ -18,12 +19,19 @@ class DataBaseMgr:
 
         print ("[INF] connecting to {0}::{1}".format(dataSource, self.mTable))
 
-        return
-
         try:
             self.mConn = ibm_db.connect(dataSource, Config.db_deploy_user, Config.db_deploy_pass)
         except:
-            print ("[ERR] DB error({0})".format(ibm_db.conn_errormsg()))
+            self.mErr = ibm_db.conn_errormsg()
+            print ("[ERR] DB error({0})".format(self.mErr.splitlines()))
+
+        return self.mConn is not None
+
+    def disconnect(self):
+        if self.mConn is None:
+            return
+        ibm_db.close(self.mConn)
+        self.mConn = None
 
     def getInstalledSQLScripts(self):
         """
@@ -62,11 +70,8 @@ class DataBaseMgr:
         except:
             print ("[ERR] DB error({0})".format(ibm_db.stmt_errormsg()))
 
-        # TODO
-        # row = ibm_db.fetch_assoc(stmt)
-        # fetch count row
-        # return count > 1
-        return True
+        row = ibm_db.fetch_row(stmt)
+        return row
 
     def isTableExist(self, aName, aType):
         schema, name = aName.split('.')
