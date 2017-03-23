@@ -2,7 +2,7 @@
 
 import argparse
 import os
-# import shutil
+import datetime
 import pprint
 
 # local
@@ -30,7 +30,7 @@ def createParser ():
     # 
     cmdParser.add_argument('-sqlOutPath', default='OUT')
     # 
-    cmdParser.add_argument('-Rgn', default='')
+    cmdParser.add_argument('-Rgn', default='MSK')
     # 
     cmdParser.add_argument('-Env', default='AA,CC,PROD')
     #
@@ -68,8 +68,10 @@ if __name__ == '__main__':
     try:
         if not os.path.exists(sqlOutPath):
             os.makedirs(sqlOutPath)
-            # пустой файл для того чтобы артефакт в любом случае создался
-            os.open(os.path.join(sqlOutPath, "_readme.txt"), os.O_CREAT)
+
+        rpath = os.path.join(sqlOutPath, "_readme.txt")
+        with open(rpath, 'wt') as f:
+            f.write("Started at: {0}\n".format(datetime.datetime.now()))
     except IOError as e:
         print ("[ERR] I/O error({0}) : {1} '{2}'".format(e.errno, e.strerror, sqlOutPath))
         quit()
@@ -95,19 +97,15 @@ if __name__ == '__main__':
         if not os.path.exists(sqlOutEnvRgnPath):
             os.mkdir(sqlOutEnvRgnPath)
 
-        # Создаем папку для временного хранения скриптов
-        # sqlOutEnvTmpPath = os.path.join(sqlOutEnvPath, "tmp")
-        # if os.path.exists(sqlOutEnvTmpPath):
-        #    shutil.rmtree(sqlOutEnvTmpPath)
-            
-        # Копируем все скрипты во временную папку
-        # shutil.copytree(sqlInpPath, sqlOutEnvTmpPath)
-                
         # Заменяем плейсхолдеры, которые находятся в DDL а не в грантах (они в одинарных кавычках)
         # Sources.replacePlaceholdersInFiles(sqlOutEnvTmpPath, env, namespace.Rgn, Config.db_ddl_placeholders)
 
         # Соединение с БД (текущая среда). При переходе к следующей среде - отсоединяться
-        dbMgr.connect(env)
+        if not dbMgr.connect(env):
+            with open(rpath, 'a') as f:
+                err = ",".join(dbMgr.mErr.splitlines())
+                f.write("Connection error: \n\tRgn: {0}\n\tEnv: {1}\n\tErr: {2}\n\n".format(namespace.Rgn, env, err))
+            continue
 
         # Получим список установленных скриптов вместе с md5
         installedSQLScripts = dbMgr.getInstalledSQLScripts()
@@ -128,28 +126,16 @@ if __name__ == '__main__':
         sqlArgs = " ".join(notInstalledSQLScripts).replace(".sql", "")
 
         if not notInstalledSQLScripts:
-            
             print("[INF] Nothing to install")            
             
         elif not sqlResultScript or not sqlArgs:
-
             print("[ERR] Wrong input parameters for Assembly.vbs")
             print("      - path:  {0}".format(sqlInpPath))
             print("      - res :  {0}".format(sqlResultScript))
             print("      - args:  {0}".format(sqlArgs))
 
         else:
-            # Запуск Assembly.sql
-            # cmdAssembly = "cscript " + namespace.Assembly +
-            # " /dbn=" + Config.getDBDataSource(env, namespace.Rgn) +
-            # " /dbu=" + Config.db_deploy_user +
-            # " /dbp=" + Config.db_deploy_pass +
-            # " /i" + sqlOutEnvTmpPath +
-            # " /o\"" + sqlResultScript + "\" " +
-            # sqlArgs
-            #          subprocess.call(cmdAssembly)
-
-            asm.createScript(env, sqlInpPath, sqlResultScript, notInstalledSQLScripts)
+            asm.createScript(sqlInpPath, sqlResultScript, notInstalledSQLScripts)
 
             if os.path.isfile(sqlResultScript):
                 # Заменяем плейсхолдеры в грантах результирующего скрипта
@@ -158,8 +144,8 @@ if __name__ == '__main__':
                 # Формирование insert-ов
                 Sources.addInsertStatements(sqlResultScript, notInstalledSQLScripts, env, namespace.Rgn, namespace.Version)
 
-        # Удаляем папку с временными SQL файлами
-        # if os.path.exists(sqlOutEnvTmpPath):
-        #    shutil.rmtree(sqlOutEnvTmpPath)
+        dbMgr.disconnect()
                     
     print ("[INF] End")
+    with open(rpath, 'a') as f:
+        f.write("Finished at: {0}\n".format(datetime.datetime.now()))
